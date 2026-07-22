@@ -4,7 +4,7 @@ Welcome to your new CAP project.
 
 It contains these folders and files, following our recommended project layout:
 
-File or Folder | Purpose
+File or Folder | Purpose 
 ---------|----------  
 `app/` | content for UI frontends goes here
 `db/` | your domain models and data go here
