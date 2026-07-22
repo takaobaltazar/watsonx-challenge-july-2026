@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "prepare": "cp scripts/pre-push.js ../scripts/pre-push.js 2>/dev/null; echo '#!/bin/sh\nexec node \"$(git rev-parse --show-toplevel)/watsonx-challenge-2026/scripts/pre-push.js\"' > ../.git/hooks/pre-push && chmod +x ../.git/hooks/pre-push"
+    "hooks:install": "node scripts/install-hooks.js"
   },
   "private": true
 }
