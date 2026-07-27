@@ -1,0 +1,181 @@
+---
+language: nodejs
+default_versions:
+- name: node
+  version: 22.x
+- name: python
+  version: 3.13.x
+include_files:
+- CHANGELOG
+- CONTRIBUTING.md
+- ISSUE_TEMPLATE
+- LICENSE
+- NOTICE
+- PULL_REQUEST_TEMPLATE
+- README.md
+- VERSION
+- bin/compile
+- bin/detect
+- bin/finalize
+- bin/release
+- bin/supply
+- manifest.yml
+- profile/appdynamics-setup.sh
+- profile/newrelic-setup.sh
+- profile/nodejs.sh
+dependency_deprecation_dates:
+- version_line: 22.x.x
+  name: node
+  date: 2027-04-30
+  link: https://github.com/nodejs/Release
+- version_line: 24.x.x
+  name: node
+  date: 2028-04-30
+  link: https://github.com/nodejs/Release
+- version_line: 3.11.x
+  name: python
+  date: 2027-10-24
+  link: https://www.python.org/dev/peps/pep-0664/
+- version_line: 3.12.x
+  name: python
+  date: 2028-10-02
+  link: https://www.python.org/dev/peps/pep-0693/
+- version_line: 3.13.x
+  name: python
+  date: 2029-10-07
+  link: https://peps.python.org/pep-0719/
+- version_line: 3.14.x
+  name: python
+  date: 2030-10-07
+  link: https://peps.python.org/pep-0745/
+dependencies:
+- name: node
+  version: 22.22.2
+  uri: https://buildpacks.cloudfoundry.org/dependencies/node/node_22.22.2_linux_x64_cflinuxfs4_e5459374.tgz
+  sha256: e54593743560302a8f74cbe0fd3ff92d288220674dfc0ecbc1516b4535d633d3
+  cf_stacks:
+  - cflinuxfs4
+  source: https://nodejs.org/dist/v22.22.2/node-v22.22.2.tar.gz
+  source_sha256: f4b9606f33aef725a77b6292460102b48b80902571a8bb94cd769837ee0577df
+- name: node
+  version: 22.22.2
+  uri: https://buildpacks.cloudfoundry.org/dependencies/node/node_22.22.2_linux_x64_cflinuxfs5_cd9f0e2a.tgz
+  sha256: cd9f0e2a1231c517ebf8d37332f0c217806c79483a4201b48d1776dc88391ee7
+  cf_stacks:
+  - cflinuxfs5
+  source: https://nodejs.org/dist/v22.22.2/node-v22.22.2.tar.gz
+  source_sha256: f4b9606f33aef725a77b6292460102b48b80902571a8bb94cd769837ee0577df
+- name: node
+  version: 24.14.0
+  uri: https://buildpacks.cloudfoundry.org/dependencies/node/node_24.14.0_linux_x64_cflinuxfs4_d8daa33a.tgz
+  sha256: d8daa33a8983513807de8e4105004e562806520f522ecf3d33a9f329fa768a64
+  cf_stacks:
+  - cflinuxfs4
+  source: https://nodejs.org/dist/v24.14.0/node-v24.14.0.tar.gz
+  source_sha256: 852c73dd5b6ba15b231d036da6312dbcdabd6295adc3940586f3187b77731cf3
+- name: node
+  version: 24.14.0
+  uri: https://buildpacks.cloudfoundry.org/dependencies/node/node_24.14.0_linux_x64_cflinuxfs5_16c6405c.tgz
+  sha256: 16c6405c1acd2b3fb2bdc1a9899ba3ec43cc4ee7c4c185e898c57c1b1ba73c61
+  cf_stacks:
+  - cflinuxfs5
+  source: https://nodejs.org/dist/v24.14.0/node-v24.14.0.tar.gz
+  source_sha256: 852c73dd5b6ba15b231d036da6312dbcdabd6295adc3940586f3187b77731cf3
+- name: node
+  version: 24.15.0
+  uri: https://buildpacks.cloudfoundry.org/dependencies/node/node_24.15.0_linux_x64_cflinuxfs4_1a62d98b.tgz
+  sha256: 1a62d98bd21e0bdf79fec37ec000be04955b8733af40c2acbf8da8f064cea912
+  cf_stacks:
+  - cflinuxfs4
+  source: https://nodejs.org/dist/v24.15.0/node-v24.15.0.tar.gz
+  source_sha256: 729de494dd2872e5a3a6c32a1cd156a5413d4aca2772b2d873ee86bb5531bcd9
+- name: node
+  version: 24.15.0
+  uri: https://buildpacks.cloudfoundry.org/dependencies/node/node_24.15.0_linux_x64_cflinuxfs5_23519f1d.tgz
+  sha256: 23519f1df6d063ffb2edc5ccc98aa38ee9608ddf11a512441912d4f5e23e7ef3
+  cf_stacks:
+  - cflinuxfs5
+  source: https://nodejs.org/dist/v24.15.0/node-v24.15.0.tar.gz
+  source_sha256: 729de494dd2872e5a3a6c32a1cd156a5413d4aca2772b2d873ee86bb5531bcd9
+- name: python
+  version: 3.11.14
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.11.14_linux_x64_cflinuxfs3_6d5446f5.tgz
+  sha256: 6d5446f502869094a9fcb701c41a6aa1c4823702e07aefb3c243e74468f5e17d
+  cf_stacks:
+  - cflinuxfs3
+  source: https://www.python.org/ftp/python/3.11.14/Python-3.11.14.tgz
+  source_sha256: 563d2a1b2a5ba5d5409b5ecd05a0e1bf9b028cf3e6a6f0c87a5dc8dc3f2d9182
+- name: python
+  version: 3.11.15
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.11.15_linux_x64_cflinuxfs4_d89c37b3.tgz
+  sha256: d89c37b356478929b97231fb2d4090d0ecc06d4293459dabd7b8881250350647
+  cf_stacks:
+  - cflinuxfs4
+  source: https://www.python.org/ftp/python/3.11.15/Python-3.11.15.tgz
+  source_sha256: f4de1b10bd6c70cbb9fa1cd71fc5038b832747a74ee59d599c69ce4846defb50
+- name: python
+  version: 3.11.15
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.11.15_linux_x64_cflinuxfs5_240344f9.tgz
+  sha256: 240344f919c73c5ca96ac44c8a91faba0b8950fa36d4d81c50956988024ae06b
+  cf_stacks:
+  - cflinuxfs5
+  source: https://www.python.org/ftp/python/3.11.15/Python-3.11.15.tgz
+  source_sha256: f4de1b10bd6c70cbb9fa1cd71fc5038b832747a74ee59d599c69ce4846defb50
+- name: python
+  version: 3.12.13
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.12.13_linux_x64_cflinuxfs4_e63cf720.tgz
+  sha256: e63cf720801bdc46dda0e1eac12465451317340ba39268b435e7b5bb5b398b89
+  cf_stacks:
+  - cflinuxfs4
+  source: https://www.python.org/ftp/python/3.12.13/Python-3.12.13.tgz
+  source_sha256: '0816c4761c97ecdb3f50a3924de0a93fd78cb63ee8e6c04201ddfaedca500b0b'
+- name: python
+  version: 3.12.13
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.12.13_linux_x64_cflinuxfs5_3d4387ec.tgz
+  sha256: 3d4387eceedf5d24d3a2d8b6098049d02ccd0bf413a4e02c73eba845284d86f0
+  cf_stacks:
+  - cflinuxfs5
+  source: https://www.python.org/ftp/python/3.12.13/Python-3.12.13.tgz
+  source_sha256: '0816c4761c97ecdb3f50a3924de0a93fd78cb63ee8e6c04201ddfaedca500b0b'
+- name: python
+  version: 3.13.13
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.13.13_linux_x64_cflinuxfs4_8311abbf.tgz
+  sha256: 8311abbf60e3c061a70eabca62ccddba613ee0eeac790ec6f7e42b75213a05f1
+  cf_stacks:
+  - cflinuxfs4
+  source: https://www.python.org/ftp/python/3.13.13/Python-3.13.13.tgz
+  source_sha256: f9cde7b0e2ec8165d7326e2a0f59ea2686ce9d0c617dbbb3d66a7e54d31b74b9
+- name: python
+  version: 3.13.13
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.13.13_linux_x64_cflinuxfs5_953e784f.tgz
+  sha256: 953e784f168dfcb66192b209181f2bbf4f9b6e554edb1938d367d7b1498aaa5f
+  cf_stacks:
+  - cflinuxfs5
+  source: https://www.python.org/ftp/python/3.13.13/Python-3.13.13.tgz
+  source_sha256: f9cde7b0e2ec8165d7326e2a0f59ea2686ce9d0c617dbbb3d66a7e54d31b74b9
+- name: python
+  version: 3.14.4
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.14.4_linux_x64_cflinuxfs4_c99dfa05.tgz
+  sha256: c99dfa053d8b47dab158af2e072d0a4c80c6593443cb97e759e45de1934afc96
+  cf_stacks:
+  - cflinuxfs4
+  source: https://www.python.org/ftp/python/3.14.4/Python-3.14.4.tgz
+  source_sha256: b4c059d5895f030e7df9663894ce3732bfa1b32cd3ab2883980266a45ce3cb3b
+- name: python
+  version: 3.14.4
+  uri: https://buildpacks.cloudfoundry.org/dependencies/python/python_3.14.4_linux_x64_cflinuxfs5_ae27ea8c.tgz
+  sha256: ae27ea8c3e4b063be4f1dfbfcb37b65fe55be0c9812f275f56e68df96e7283ec
+  cf_stacks:
+  - cflinuxfs5
+  source: https://www.python.org/ftp/python/3.14.4/Python-3.14.4.tgz
+  source_sha256: b4c059d5895f030e7df9663894ce3732bfa1b32cd3ab2883980266a45ce3cb3b
+- name: yarn
+  version: 1.22.22
+  uri: https://buildpacks.cloudfoundry.org/dependencies/yarn/yarn_1.22.22_linux_noarch_any-stack_b6132b86.tgz
+  sha256: b6132b864c1948174385b4efec842d21cb964c2ae1e79fedcb4eb783ffdaa8a5
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs5
+  source: https://github.com/yarnpkg/yarn/releases/download/v1.22.22/yarn-v1.22.22.tar.gz
+  source_sha256: 88268464199d1611fcf73ce9c0a6c4d44c7d5363682720d8506f6508addf36a0
+pre_package: scripts/build.sh

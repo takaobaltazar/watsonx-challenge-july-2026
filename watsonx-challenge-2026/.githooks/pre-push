@@ -1,0 +1,265 @@
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────────────────────
+# pre-push hook — CF buildpack / Node.js compatibility check
+#
+# All logic is self-contained in this file.
+# Hard errors are shown as a native OS popup AND printed to the terminal.
+#
+# The only escape hatch is:  git push --no-verify
+# ─────────────────────────────────────────────────────────────────────────────
+
+node - <<'EOF'
+const { execFileSync, spawnSync } = require('node:child_process');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
+
+// ─── load .env (no external deps — plain key=value parser) ──────────────────
+
+function loadEnv() {
+  // __dirname is not available in a heredoc; use process.env.PWD or cwd
+  const envPath = resolve(process.cwd(), '.env');
+  try {
+    return Object.fromEntries(
+      readFileSync(envPath, 'utf8')
+        .split(/\r?\n/)
+        .filter((l) => l.trim() && !l.startsWith('#'))
+        .map((l) => l.split('=').map((p) => p.trim()))
+        .filter(([k]) => k),
+    );
+  } catch {
+    return {}; // .env is optional — fall back to defaults below
+  }
+}
+
+const _env = loadEnv();
+
+// Constants — override via .env (see .env.example)
+const REQUIRED_STACK     = _env.CF_REQUIRED_STACK     || 'cflinuxfs4';
+const REQUIRED_BUILDPACK = _env.CF_REQUIRED_BUILDPACK || 'nodejs_buildpack';
+const RAW_MANIFEST_BASE  = _env.CF_RAW_MANIFEST_BASE  || 'https://raw.githubusercontent.com/cloudfoundry/nodejs-buildpack';
+
+// ─── helpers ──────────────────────────────────────────────────────────────
+
+function run(cmd, args) {
+  return execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+
+/**
+ * Show a native OS popup with the error message, then also print the
+ * box-drawn block to stderr, then exit(1).
+ *
+ * Popup implementations tried in order:
+ *   Windows  → PowerShell MessageBox
+ *   macOS    → osascript (AppleScript)
+ *   Linux    → zenity, then notify-send
+ *   Fallback → terminal box only (always works)
+ */
+function fail(message) {
+  // ── 1. terminal box ───────────────────────────────────────────────────
+  const lines  = message.split('\n');
+  const width  = Math.max(...lines.map((l) => l.length), 60);
+  const bar    = '═'.repeat(width + 2);
+  const pad    = (l) => `║ ${l.padEnd(width)} ║`;
+
+  const box = [
+    '',
+    `╔${bar}╗`,
+    `║  ${'⛔  CF PRE-PUSH BLOCKED'.padEnd(width - 1)}║`,
+    `╠${bar}╣`,
+    ...lines.map(pad),
+    `╠${bar}╣`,
+    pad('Fix the issue above, then push again.'),
+    pad('To skip this check (NOT recommended): git push --no-verify'),
+    `╚${bar}╝`,
+    '',
+  ].join('\n');
+
+  process.stderr.write(box + '\n');
+
+  // ── 2. native popup ───────────────────────────────────────────────────
+  const title   = 'CF Pre-Push Blocked';
+  const popup   = `${message}\n\nFix the issue, then push again.\nEscape hatch: git push --no-verify`;
+  const platform = process.platform;
+
+  if (platform === 'win32') {
+    // PowerShell MessageBox — works in any Windows terminal incl. Git Bash
+    spawnSync('powershell', [
+      '-NoProfile', '-NonInteractive', '-Command',
+      `Add-Type -AssemblyName PresentationFramework;` +
+      `[System.Windows.MessageBox]::Show(` +
+        `[string]::join("\`n", @(${
+          popup.split('\n').map((l) => `'${l.replace(/'/g, "''")}'`).join(',')
+        })),` +
+        `'${title}',` +
+        `'OK',` +
+        `'Error'` +
+      `)`,
+    ], { stdio: 'ignore' });
+
+  } else if (platform === 'darwin') {
+    // macOS — AppleScript dialog
+    const escaped = popup.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    spawnSync('osascript', [
+      '-e', `display dialog "${escaped}" with title "${title}" buttons {"OK"} default button "OK" with icon stop`,
+    ], { stdio: 'ignore' });
+
+  } else {
+    // Linux — try zenity, fall back to notify-send
+    const result = spawnSync('zenity', [
+      '--error',
+      `--title=${title}`,
+      `--text=${popup}`,
+      '--width=480',
+    ], { stdio: 'ignore' });
+
+    if (result.error) {
+      // zenity not available — try notify-send (desktop notification)
+      spawnSync('notify-send', ['-u', 'critical', title, popup], { stdio: 'ignore' });
+    }
+  }
+
+  process.exit(1);
+}
+
+// ─── CF buildpack line parsing ─────────────────────────────────────────────
+
+function parseBuildpackLine(output) {
+  const line = output
+    .split(/\r?\n/)
+    .find((e) => e.includes(REQUIRED_BUILDPACK) && e.includes(REQUIRED_STACK));
+
+  if (!line) {
+    fail(
+      `Could not find "${REQUIRED_BUILDPACK}" for stack "${REQUIRED_STACK}"\n` +
+      `in the output of 'cf buildpacks'.`,
+    );
+  }
+
+  const parts      = line.trim().split(/\s+/);
+  const stackIndex = parts.indexOf(REQUIRED_STACK);
+  const filename   = parts[stackIndex + 4];
+
+  if (!filename) {
+    fail(`Could not parse buildpack filename from CF output line:\n  ${line}`);
+  }
+
+  const m = filename.match(/-v(\d+\.\d+\.\d+)\.zip$/);
+  if (!m) {
+    fail(`Could not extract a semver version from buildpack filename:\n  ${filename}`);
+  }
+
+  return { filename, version: `v${m[1]}` };
+}
+
+// ─── raw manifest.yml fetching + parsing ──────────────────────────────────
+
+function manifestUrl(version) {
+  return `${RAW_MANIFEST_BASE}/${version}/manifest.yml`;
+}
+
+function fetchManifest(version) {
+  const url = manifestUrl(version);
+  console.log(`[cf-pre-push] Fetching manifest: ${url}`);
+
+  let body;
+  try {
+    body = run('curl', ['-fsSL', '--user-agent', 'cf-pre-push', url]);
+  } catch {
+    fail(
+      `Unable to fetch buildpack manifest for ${version}.\n` +
+      `URL: ${url}\n` +
+      `Check your internet connection or VPN settings.`,
+    );
+  }
+
+  if (!body || body.trim().length === 0) {
+    fail(`Empty response fetching buildpack manifest.\nURL: ${url}`);
+  }
+
+  return body;
+}
+
+function parseNodeVersions(yaml, stack) {
+  const versions = [];
+
+  for (const block of yaml.split(/^- name:/m)) {
+    if (!block.match(/^\s*node\s*$/m)) continue;
+
+    // Collect cf_stacks list items line-by-line (regex lookahead was unreliable
+    // across manifest format versions where \Z is not valid JS).
+    const cfStacksIdx = block.indexOf('cf_stacks:');
+    if (cfStacksIdx === -1) continue;
+
+    const stacks = [];
+    for (const line of block.slice(cfStacksIdx + 'cf_stacks:'.length).split('\n')) {
+      const item = line.match(/^\s+-\s+(\S+)/);
+      if (item) { stacks.push(item[1]); continue; }
+      if (line.match(/^\s+\S/) && stacks.length > 0) break; // non-list key ends section
+    }
+
+    if (!stacks.includes(stack)) continue;
+
+    // Only exact semver x.y.z (skip wildcard "22.x" default_versions entries)
+    const v = block.match(/version:\s*["']?(\d+\.\d+\.\d+)["']?/);
+    if (v) versions.push(v[1]);
+  }
+
+  if (versions.length === 0) {
+    fail(
+      `No Node.js versions found in buildpack manifest for stack "${stack}".\n` +
+      `This may mean the manifest format changed — inspect it manually.`,
+    );
+  }
+
+  return [...new Set(versions)].sort((a, b) => {
+    const [aM, am, ap] = a.split('.').map(Number);
+    const [bM, bm, bp] = b.split('.').map(Number);
+    return bM - aM || bm - am || bp - ap;
+  });
+}
+
+// ─── main ─────────────────────────────────────────────────────────────────
+
+// 1. CF login check
+try { run('cf', ['target']); }
+catch { fail('CF login required.\nRun "cf login" before pushing.'); }
+
+// 2. Read installed buildpacks
+let buildpacksOutput;
+try { buildpacksOutput = run('cf', ['buildpacks']); }
+catch { fail('Unable to read CF buildpacks.\nVerify your CF CLI session and permissions.'); }
+
+const buildpack = parseBuildpackLine(buildpacksOutput);
+
+// 3. Local Node.js version
+let localNode;
+try { localNode = run('node', ['-v']).replace(/^v/, ''); }
+catch { fail('Unable to run "node -v".\nInstall Node.js or fix your PATH.'); }
+
+// 4. Fetch manifest + parse supported versions
+const manifest  = fetchManifest(buildpack.version);
+const supported = parseNodeVersions(manifest, REQUIRED_STACK);
+
+// 5. Report
+console.log(`[cf-pre-push] CF buildpack         : ${REQUIRED_BUILDPACK}`);
+console.log(`[cf-pre-push] CF stack             : ${REQUIRED_STACK}`);
+console.log(`[cf-pre-push] CF filename          : ${buildpack.filename}`);
+console.log(`[cf-pre-push] CF buildpack version : ${buildpack.version}`);
+console.log(`[cf-pre-push] Manifest URL         : ${manifestUrl(buildpack.version)}`);
+console.log(`[cf-pre-push] Supported Node.js    : ${supported.join(', ')}`);
+console.log(`[cf-pre-push] Local Node.js        : ${localNode}`);
+
+// 6. Hard block if version is unsupported
+if (!supported.includes(localNode)) {
+  fail(
+    `Local Node.js v${localNode} is NOT supported by\n` +
+    `${REQUIRED_BUILDPACK} ${buildpack.version} on ${REQUIRED_STACK}.\n` +
+    `Supported versions: ${supported.join(', ')}\n` +
+    `Switch Node version (e.g. nvm use <version>) and try again.`,
+  );
+}
+
+console.log(`[cf-pre-push] ✔  Node.js v${localNode} is supported — push allowed.`);
+EOF
+
+exit $?
