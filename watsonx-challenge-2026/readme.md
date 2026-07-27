@@ -10,7 +10,7 @@ The only escape hatch is `git push --no-verify`.
 
 ## How to run
   
-### 1. Clone the repo
+### 1. Clone the repo 
 
 ```sh
 git clone <repo-url>
